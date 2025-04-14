@@ -10,18 +10,19 @@ const validCategory = (category_id) => {
             } else {
                 return resolve(false);
             }
-        })
+        }) 
     })
 }
 
 exports.createBlog = async (req, res) => {
     try {
         const { title, contents, category_id } = req.body;
+        // console.log("user id : ", req.user.id);
         
-        if(!title || !contents || !user_id || category_id){
+        if(!title || !contents || !category_id){
             return res.status(403).json({
                 success: false,
-                message: "Please fill all details carefully",
+                message: "Please fill all details carefully", 
             });
         }
 
@@ -32,9 +33,9 @@ exports.createBlog = async (req, res) => {
                 message: " Category not Found",
             });
         }
-
+        const userId = req.user.id;
         const sql = "insert into blogs (title, contents, user_id, category_id) VALUES (?, ?, ?, ?)";
-        pool.query(sql, [title, contents, req.user.id, category_id], (err, data) => {
+        pool.query(sql, [title, contents, userId, category_id], (err, data) => {
             if (data) {
                 if (data) {
                     res.status(200).json({
@@ -56,7 +57,7 @@ exports.createBlog = async (req, res) => {
     }
 }
 
-const getBlogData = () => {
+const getBlogData = (id) => {
     return new Promise((resolve, reject) => {
         const sql = "select * from blogs where id=?";
         pool.query(sql, [id], (error, data) => {
@@ -80,7 +81,7 @@ exports.editBlog = async (req, res) => {
             return res.status(404).json({
                 success: false,
                 message: "Blog not found",
-            });
+            }); 
         }
 
         if (title != undefined) {
@@ -121,7 +122,7 @@ exports.getAllBlogs = async (req, res) => {
         const sql = "select * from blogs";
         pool.query(sql, (err, data) => {
             if (data) {
-                return res.status(200), json({
+                return res.status(200).json({
                     success: true,
                     message: "blogs get successfully",
                     data:data,
@@ -144,7 +145,7 @@ exports.myBlogs = async (req, res) => {
         const sql = "select * from blogs where user_id=?";
         pool.query(sql, [req.user.id], (err, data) => {
             if (data) {
-                return res.status(200), json({
+                return res.status(200).json({
                     success: true,
                     message: "Personal blogs get successfully",
                     data:data,
@@ -162,3 +163,31 @@ exports.myBlogs = async (req, res) => {
     }
 }
 
+exports.searchBlog = async (req, res) => {
+    try {
+        const searchTerm = req.query.searchTerm;
+        let sql = `select * from blogs`;
+
+        if (searchTerm) { 
+            sql = sql + ` where title LIKE '%${searchTerm}%'`
+        }
+
+        pool.query(sql, (error, data) => {
+            if (data) {
+                res.status(200).json({
+                    success: true,
+                    message: "Blog get successfully",
+                    data:data,
+                })
+            } else if (error) {
+                throw new Error(error);
+            }
+        })
+    } catch (err) {
+        return res.status(500).json({
+            success: false,
+            error: err.message,
+            message:"Error occured while searching blog",
+        })
+    }
+}
